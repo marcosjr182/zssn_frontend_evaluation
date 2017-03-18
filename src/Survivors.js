@@ -31,6 +31,21 @@ function getSurvivorsId(e){
   });
 }
 
+function getSurvivorsInvetory(e){
+  let survivors = e.state.survivors;
+  let id;
+  let count = 0;
+  e.state.survivors.map((survivor) => {
+    id = survivor["id"];
+    return fetch(`http://zssn-backend-example.herokuapp.com/api/people/${id}/properties.json`)
+      .then((response) => response.json())
+      .then((inventory) => {
+        survivors[count]["inventory"] = inventory;
+        count += 1;
+      });
+  });
+}
+
 class SurvivorsTable extends React.Component{
   constructor(){
     super();
@@ -43,8 +58,10 @@ class SurvivorsTable extends React.Component{
 
   render(){
     getSurvivorsId(this);
+    getSurvivorsInvetory(this);
     let survivors = this.state.survivors;
     let rows = [];
+    console.log(survivors);
     survivors.map((survivor) => {
       if(!survivor["infected?"]){
         rows.push(<SurvivorsRow survivor={survivor} key={survivor["id"]} />);
@@ -81,11 +98,10 @@ class SurvivorsRow extends React.Component{
         <td>{this.props.survivor["gender"]}</td>
         <td>{this.props.survivor["age"]}</td>
         <td>{this.props.survivor["lonlat"]}</td>
-        <td>{this.props.survivor["lonlat"]}</td>
-        <td>x</td>
-        <td>x</td>
-        <td>x</td>
-        <td>x</td>
+        <td>{this.props.survivor["water"]}</td>
+        <td>{this.props.survivor["food"]}</td>
+        <td>{this.props.survivor["medication"]}</td>
+        <td>{this.props.survivor["ammunition"]}</td>
       </tr>
     );
   }
