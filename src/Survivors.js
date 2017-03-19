@@ -1,7 +1,6 @@
 import React from 'react';
 
 class Survivors extends React.Component {
-
   render(){
     return(
       <ul className="survivors-table">
@@ -11,39 +10,67 @@ class Survivors extends React.Component {
   }
 }
 
-function getSurvivors(e){
-  return fetch('http://zssn-backend-example.herokuapp.com/api/people.json')
+function fetchSurvivors(e){
+  let survivors = [];
+  fetch('http://zssn-backend-example.herokuapp.com/api/people.json')
   .then((response) => response.json())
-  .then((survivors) => {
-    e.setState({survivors})
+  .then((result) => {
+    result.forEach((survivor) => {
+      if(!survivor["infected?"]){
+        survivors.push(survivor);
+      }
+    });
+    fetchSurvivorsInvetory(survivors, e);
   });
 }
 
-function getSurvivorsId(e){
-  let id;
-  let survivors = e.state.survivors;
-  let count = 0;
-  e.state.survivors.map((survivor) => {
-    id = survivor["location"].split("people/")[1];
-    survivors[count]["id"] = id;
-    count += 1;
-    return survivors;
-  });
+function getSurvivorsId(location){
+  return location.split("people/")[1];
 }
 
-function getSurvivorsInvetory(e){
-  let survivors = e.state.survivors;
+function fetchSurvivorsInvetory(survivorsFetch, e){
+  let survivors = survivorsFetch;
   let id;
   let count = 0;
-  e.state.survivors.map((survivor) => {
-    id = survivor["id"];
-    return fetch(`http://zssn-backend-example.herokuapp.com/api/people/${id}/properties.json`)
+  survivors.forEach((survivor) => {
+    id = getSurvivorsId(survivor["location"]);
+    fetch(`http://zssn-backend-example.herokuapp.com/api/people/${id}/properties.json`)
       .then((response) => response.json())
       .then((inventory) => {
-        survivors[count]["inventory"] = inventory;
+        let inv = extractSurvivorsInventory(inventory)
+        survivors[count]["water"] = inv["water"];
+        survivors[count]["food"] = inv["food"];
+        survivors[count]["medication"] = inv["medication"];
+        survivors[count]["ammunition"] = inv["ammunition"];
         count += 1;
       });
   });
+  e.setState({survivors: survivors});
+}
+
+function extractSurvivorsInventory(inventory){
+  let resouces = {};
+  resouces["water"] = 0;
+  resouces["food"] = 0;
+  resouces["medication"] = 0;
+  resouces["ammunition"] = 0;
+
+  inventory.forEach((item) => {
+    let name = item["item"]["name"].toLowerCase();
+    if(name === "water"){
+      resouces["water"] = item["quantity"];
+    }
+    else if(name === "food"){
+      resouces["food"] = item["quantity"];
+    }
+    else if(name === "medication"){
+      resouces["medication"] = item["quantity"];
+    }
+    else if(name === "ammunition"){
+      resouces["ammunition"] = item["quantity"];
+    }
+  });
+  return resouces;
 }
 
 class SurvivorsTable extends React.Component{
@@ -53,19 +80,19 @@ class SurvivorsTable extends React.Component{
   }
 
   componentWillMount(){
-    getSurvivors(this);
+
+  }
+
+  componentDidMount(){
+    fetchSurvivors(this);
   }
 
   render(){
-    getSurvivorsId(this);
-    getSurvivorsInvetory(this);
-    let survivors = this.state.survivors;
     let rows = [];
-    console.log(survivors);
-    survivors.map((survivor) => {
-      if(!survivor["infected?"]){
-        rows.push(<SurvivorsRow survivor={survivor} key={survivor["id"]} />);
-      }
+    this.state.survivors.forEach((survivor) => {
+      console.log(survivor);
+      let id = getSurvivorsId(survivor["location"]);
+      rows.push(<SurvivorsRow survivor={survivor} key={id} />);
     });
 
     return(
@@ -92,11 +119,13 @@ class SurvivorsTable extends React.Component{
 
 class SurvivorsRow extends React.Component{
   render(){
+
     return(
       <tr>
         <td>{this.props.survivor["name"]}</td>
         <td>{this.props.survivor["gender"]}</td>
         <td>{this.props.survivor["age"]}</td>
+        <td>{this.props.survivor["lonlat"]}</td>
         <td>{this.props.survivor["lonlat"]}</td>
         <td>{this.props.survivor["water"]}</td>
         <td>{this.props.survivor["food"]}</td>
@@ -106,4 +135,5 @@ class SurvivorsRow extends React.Component{
     );
   }
 }
+
 export default Survivors;
